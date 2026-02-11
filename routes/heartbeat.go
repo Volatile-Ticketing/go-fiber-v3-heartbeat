@@ -3,6 +3,7 @@ package routes
 import (
 	"fmt"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -39,9 +40,28 @@ type ServerVitals struct {
 		OS         string `json:"os"`
 		Arch       string `json:"arch"`
 	} `json:"system"`
+	RuntimeErrors map[string][]ErrorLog `json:"runtimeErrors"`
 }
 
 var startTime = time.Now()
+
+var errors = make(map[string][]ErrorLog)
+var errorsMutex sync.Mutex
+
+func AddErrorToLog(message string) {
+	errorsMutex.Lock()
+	defer errorsMutex.Unlock()
+	if _, ok := errors[message]; !ok {
+		errors[message] = make([]ErrorLog, 0)
+	}
+	errors[message] = append(errors[message], ErrorLog{Time: time.Now()})
+}
+
+func GetErrors() map[string][]ErrorLog {
+	errorsMutex.Lock()
+	defer errorsMutex.Unlock()
+	return errors
+}
 
 // formatBytes converts bytes to human-readable format
 func formatBytes(bytes uint64) string {
@@ -115,6 +135,8 @@ func HeartbeatHandler(c fiber.Ctx) error {
 	vitals.System.GoVersion = runtime.Version()
 	vitals.System.OS = runtime.GOOS
 	vitals.System.Arch = runtime.GOARCH
+
+	vitals.RuntimeErrors = GetErrors()
 
 	return c.Status(fiber.StatusOK).JSON(vitals)
 }
