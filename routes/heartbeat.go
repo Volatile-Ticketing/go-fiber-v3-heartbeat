@@ -48,13 +48,13 @@ var startTime = time.Now()
 var errors = make(map[string][]ErrorLog)
 var errorsMutex sync.Mutex
 
-func AddErrorToLog(message string) {
+func AddErrorToLog(category, message string) {
 	errorsMutex.Lock()
 	defer errorsMutex.Unlock()
-	if _, ok := errors[message]; !ok {
-		errors[message] = make([]ErrorLog, 0)
+	if _, ok := errors[category]; !ok {
+		errors[category] = make([]ErrorLog, 0)
 	}
-	errors[message] = append(errors[message], ErrorLog{Time: time.Now()})
+	errors[category] = append(errors[category], ErrorLog{Time: time.Now(), Message: message})
 }
 
 func GetErrors() map[string][]ErrorLog {
